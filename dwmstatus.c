@@ -8,12 +8,19 @@
 #define DEBUG_ERROR(fmt)
 #endif
 
+void SetStatus(char* status, Display* display) {
+	XStoreName(display, DefaultRootWindow(display), status);
+	XSync(display, False);
+}
+
 int main() {
 	Display* display;
 	display = XOpenDisplay(NULL);
 	if (display == NULL) {
 		return 1;
 	}
+
+	SetStatus("My status program is the best!!1!", display);
 
 	XCloseDisplay(display);
 
