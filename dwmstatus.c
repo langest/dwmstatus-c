@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include <X11/Xlib.h>
 
 #if defined(DEBUG) && DEBUG > 0
@@ -21,7 +23,9 @@ int main() {
 		return 1;
 	}
 
-	SetStatus("My status program is the best!!1!", display);
+	char status[128];
+	sprintf(status, "My status");
+	SetStatus(status, display);
 
 	XCloseDisplay(display);
 
