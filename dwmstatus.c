@@ -17,6 +17,7 @@ int main() {
 	Display* display;
 	display = XOpenDisplay(NULL);
 	if (display == NULL) {
+		DEBUG_ERROR("Failed to open display");
 		return 1;
 	}
 
