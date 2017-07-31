@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 
 #include <X11/Xlib.h>
 
@@ -9,6 +10,23 @@
 #define DEBUG_PRINT(fmt, ...)
 #define DEBUG_ERROR(fmt)
 #endif
+
+void GetTime(char* out, size_t size) {
+	time_t t;
+	struct tm* localTime;
+
+	time(&t);
+	localTime = localtime(&t);
+	if (localTime == NULL) {
+		DEBUG_ERROR("Failed to get localTime");
+		return;
+	}
+
+	int len = strftime(out, size, "%W %a %d %b %H:%M", localTime);
+	if (len <= 0) {
+		DEBUG_ERROR("Failed to format time");
+	}
+}
 
 void SetStatus(char* status, Display* display) {
 	XStoreName(display, DefaultRootWindow(display), status);
@@ -23,8 +41,14 @@ int main() {
 		return 1;
 	}
 
-	char status[128];
-	sprintf(status, "My status");
+	const size_t timeMaxLength = 32;
+	const size_t statusMaxLength = 128;
+	char time[timeMaxLength];
+	char status[statusMaxLength];
+
+	GetTime(time, timeMaxLength);
+
+	snprintf(status, statusMaxLength, "W%s", time);
 	SetStatus(status, display);
 
 	XCloseDisplay(display);
