@@ -17,6 +17,94 @@
 #define DEBUG_ERROR(fmt)
 #endif
 
+void GetBatteryStatus(char* out, const size_t size) {
+	FILE* file;
+	/* Check battery present */
+	file = fopen("/sys/class/power_supply/BAT0/present", "r");
+	if (file == NULL) {
+		DEBUG_ERROR("Failed to open battery present file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+	const int present = fgetc(file);
+
+	int err;
+	err = fclose(file);
+	if (err != 0) {
+		DEBUG_ERROR("Failed to close battery present file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+	if (present == 0) {
+		snprintf(out, size, "Bat: nope");
+		return;
+	}
+
+	/* Get battery capacity */
+	file = fopen("/sys/class/power_supply/BAT0/energy_full", "r");
+	if (file == NULL) {
+		DEBUG_ERROR("Failed to open battery capacity file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+	int capacity = -1;
+	fscanf(file, "%d", &capacity);
+
+	err = fclose(file);
+	if (err != 0) {
+		DEBUG_ERROR("Failed to close battery capacity file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+
+	/* Get battery energy */
+	file = fopen("/sys/class/power_supply/BAT0/energy_now", "r");
+	if (file == NULL) {
+		DEBUG_ERROR("Failed to open battery energy file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+	int energy = -1;
+	fscanf(file, "%d", &energy);
+
+	err = fclose(file);
+	if (err != 0) {
+		DEBUG_ERROR("Failed to close battery energy file\n");
+		snprintf(out, size, "Bat: err");
+		return;
+	}
+
+	if (capacity == -1 || energy == -1) {
+		snprintf(out, size, "Bat: ???%%");
+		return;
+	}
+
+	/* Get battery status */
+	char status;
+	char statusFile[12];
+	file = fopen("/sys/class/power_supply/BAT0/status", "r");
+	if (file == NULL) {
+		DEBUG_ERROR("Failed to open battery status file\n");
+		status = '?';
+	} else {
+		fscanf(file, "%s", statusFile);
+		DEBUG_PRINT("Battery status: %s\n", statusFile);
+
+		err = fclose(file);
+		if (err != 0) {
+			DEBUG_ERROR("Failed to close battery status file\n");
+		}
+		if (strstr(statusFile, "Di")) {
+			status = '-';
+		} else if (strstr(statusFile, "Ch")) {
+			status = '+';
+		}
+	}
+	DEBUG_PRINT("Battery capacity: %d\n", capacity);
+	DEBUG_PRINT("Battery energy: %d\n", energy);
+	snprintf(out, size, "Bat: %c %d%%", status, energy/capacity*100);
+}
+
 void GetAudioVolume(long* outvol) {
 	*outvol = -1;
 	snd_mixer_t* handle;
@@ -79,7 +167,7 @@ void GetAudioVolume(long* outvol) {
 	snd_mixer_close(handle);
 }
 
-int GetTime(char* out, size_t size) {
+int GetTime(char* out, const size_t size) {
 	time_t t;
 	struct tm* localTime;
 
@@ -97,7 +185,7 @@ int GetTime(char* out, size_t size) {
 	return localTime->tm_sec;
 }
 
-void GetKeyboardLayout(Display* display, char* out, size_t size) {
+void GetKeyboardLayout(Display* display, char* out, const size_t size) {
 	XkbDescRec* _kbdDescPtr = XkbAllocKeyboard();
 	XkbGetNames(display, XkbSymbolsNameMask, _kbdDescPtr);
 	Atom symName = _kbdDescPtr->names->symbols;
@@ -139,22 +227,25 @@ int main() {
 		return 1;
 	}
 
-	const size_t timeMaxLength = 32;
+	const size_t batteryMaxLength = 16;
 	const size_t kbMaxLength = 4;
+	const size_t timeMaxLength = 32;
 	const size_t statusMaxLength = 128;
-	char time[timeMaxLength];
+	char battery[batteryMaxLength];
 	char kb[kbMaxLength];
 	long volume = -1;
+	char time[timeMaxLength];
 	char status[statusMaxLength];
 
 	int sleepDuration = 0;
 	while (True) {
+		GetBatteryStatus(battery, batteryMaxLength);
 		GetKeyboardLayout(display, kb, kbMaxLength);
 		GetAudioVolume(&volume);
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " KB: %s   Vol: %ld   %s", kb, volume, time);
+		snprintf(status, statusMaxLength, " %s   KB: %s   Vol: %ld   %s", battery, kb, volume, time);
 		SetStatus(status, display);
 		DEBUG_PRINT("Set status to: %s, sleeping for %d seconds\n", status, sleepDuration);
 		sleep(sleepDuration);
