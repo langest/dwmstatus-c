@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 
 #include <alsa/asoundlib.h>
 
@@ -102,7 +103,7 @@ void GetKeyboardLayout(Display* display, char* out, size_t size) {
 	Atom symName = _kbdDescPtr->names->symbols;
 	char* layoutString = XGetAtomName(display, symName);
 
-/* Currently configured for US and SE */
+	/* Currently configured for US and SE */
 	if (strstr(layoutString, "us")) {
 		snprintf(out, size, "us");
 	} else if (strstr(layoutString, "se")) {
@@ -116,11 +117,25 @@ void SetStatus(char* status, Display* display) {
 	XSync(display, False);
 }
 
+void CatchSignal(int signo, siginfo_t* sinfo, void *context) {
+	DEBUG_PRINT("Caught signal no: %d.\n", signo);
+}
+
 int main() {
+	/* Register signal handler */
+	struct sigaction action;
+	memset(&action, 0, sizeof(action));
+	action.sa_sigaction = &CatchSignal;
+	action.sa_flags = SA_SIGINFO;
+	if (sigaction(SIGUSR1, &action, NULL) < 0) {
+		DEBUG_ERROR("Failed to register signal handler\n");
+		return 2;
+	}
+
 	Display* display;
 	display = XOpenDisplay(NULL);
 	if (display == NULL) {
-		DEBUG_ERROR("Failed to open display");
+		DEBUG_ERROR("Failed to open display\n");
 		return 1;
 	}
 
