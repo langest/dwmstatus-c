@@ -6,6 +6,7 @@
 #include <alsa/asoundlib.h>
 
 #include <X11/Xlib.h>
+#include <X11/XKBlib.h>
 
 #if defined(DEBUG) && DEBUG > 0
 #define DEBUG_PRINT(fmt, ...) fprintf(stderr, "[DEBUG] %s:%d:%s(): " fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)
@@ -95,6 +96,21 @@ int GetTime(char* out, size_t size) {
 	return localTime->tm_sec;
 }
 
+void GetKeyboardLayout(Display* display, char* out, size_t size) {
+	XkbDescRec* _kbdDescPtr = XkbAllocKeyboard();
+	XkbGetNames(display, XkbSymbolsNameMask, _kbdDescPtr);
+	Atom symName = _kbdDescPtr->names->symbols;
+	char* layoutString = XGetAtomName(display, symName);
+
+/* Currently configured for US and SE */
+	if (strstr(layoutString, "us")) {
+		snprintf(out, size, "us");
+	} else if (strstr(layoutString, "se")) {
+		snprintf(out, size, "se");
+	}
+	XkbFreeKeyboard(_kbdDescPtr, XkbSymbolsNameMask, True);
+}
+
 void SetStatus(char* status, Display* display) {
 	XStoreName(display, DefaultRootWindow(display), status);
 	XSync(display, False);
@@ -109,18 +125,21 @@ int main() {
 	}
 
 	const size_t timeMaxLength = 32;
+	const size_t kbMaxLength = 4;
 	const size_t statusMaxLength = 128;
 	char time[timeMaxLength];
+	char kb[kbMaxLength];
 	long volume = -1;
 	char status[statusMaxLength];
 
 	int sleepDuration = 0;
 	while (True) {
+		GetKeyboardLayout(display, kb, kbMaxLength);
 		GetAudioVolume(&volume);
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " Vol: %ld   %s", volume, time);
+		snprintf(status, statusMaxLength, " KB: %s   Vol: %ld   %s", kb, volume, time);
 		SetStatus(status, display);
 		DEBUG_PRINT("Set status to: %s, sleeping for %d seconds\n", status, sleepDuration);
 		sleep(sleepDuration);
