@@ -172,10 +172,13 @@ int GetTime(char* out, const size_t size) {
 		return 60;
 	}
 
-	int len = strftime(out, size, "W%W %a %d %b %H:%M", localTime);
+	char time[size];
+	int len = strftime(time, size, "W%W %%s %d %b %H:%M", localTime);
 	if (len <= 0) {
 		DEBUG_ERROR("Failed to format time\n");
 	}
+	static const char* weekdays = "日\0月\0火\0水\0木\0金\0土\0";
+	snprintf(out, size, time, &weekdays[localTime->tm_wday*4]);
 	return localTime->tm_sec;
 }
 
