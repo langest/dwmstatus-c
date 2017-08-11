@@ -73,30 +73,30 @@ void GetBatteryStatus(char* out, const size_t size) {
 	}
 
 	/* Get battery status */
-	char status;
-	char statusFile[12];
+	const size_t statusSize = 12;
+	char status[statusSize];
 	FILE* file;
 	file = fopen("/sys/class/power_supply/BAT0/status", "r");
 	if (file == NULL) {
 		DEBUG_ERROR("Failed to open battery status file\n");
-		status = '?';
+		status[0] = '\0';
 	} else {
-		fscanf(file, "%s", statusFile);
-		DEBUG_PRINT("Battery status: %s\n", statusFile);
+		fscanf(file, "%s", status);
+		DEBUG_PRINT("Battery status: %s\n", status);
 
 		err = fclose(file);
 		if (err != 0) {
 			DEBUG_ERROR("Failed to close battery status file\n");
 		}
-		if (strstr(statusFile, "D")) { /* Discharging */
-			status = '-';
-		} else { /* Charging */
-			status = '+';
+		if (status[0] == 'C') { /* Charging */
+			snprintf(status, statusSize, "%s", "⌁");
+		} else { /* Discharging */
+		status[0] = '\0';
 		}
 	}
 	DEBUG_PRINT("Battery capacity: %f\n", capacity);
 	DEBUG_PRINT("Battery energy: %f\n", energy);
-	snprintf(out, size, "%c %0.f%%", status, energy/capacity*100.0f);
+	snprintf(out, size, "%s%0.f%%", status, energy/capacity*100.0f);
 }
 
 void GetAudioVolume(long* outvol) {
@@ -172,7 +172,7 @@ int GetTime(char* out, const size_t size) {
 		return 60;
 	}
 
-	int len = strftime(out, size, "W%W %a %d %b %H:%M:%S", localTime);
+	int len = strftime(out, size, "W%W %a %d %b %H:%M", localTime);
 	if (len <= 0) {
 		DEBUG_ERROR("Failed to format time\n");
 	}
@@ -242,7 +242,7 @@ int main() {
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " Bri: %s    Bat: %s   KB: %s   Vol: %ld   %s",
+		snprintf(status, statusMaxLength, " ☼ %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s",
 		brightness, battery, kb, volume, time);
 		SetStatus(status, display);
 		DEBUG_PRINT("Set status to: %s, sleeping for %d seconds\n", status, sleepDuration);
