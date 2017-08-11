@@ -17,64 +17,38 @@
 #define DEBUG_ERROR(fmt)
 #endif
 
-void GetBatteryStatus(char* out, const size_t size) {
+int ReadFile(char* fileName, float* out) {
 	FILE* file;
-	/* Check battery present */
-	file = fopen("/sys/class/power_supply/BAT0/present", "r");
+	file = fopen(fileName, "r");
 	if (file == NULL) {
-		DEBUG_ERROR("Failed to open battery present file\n");
-		snprintf(out, size, "err");
-		return;
+		DEBUG_PRINT("Failed to open file: %s\n", fileName);
+		return 1;
 	}
-	const int present = fgetc(file);
-
+	fscanf(file, "%f", out);
 	int err;
 	err = fclose(file);
 	if (err != 0) {
-		DEBUG_ERROR("Failed to close battery present file\n");
-		snprintf(out, size, "err");
-		return;
+		DEBUG_PRINT("Failed to close file: %s\n", fileName);
+		return 2;
 	}
-	if (present == 0) {
-		snprintf(out, size, "nope");
-		return;
-	}
+	return 0;
+}
 
-	/* Get battery capacity */
-	file = fopen("/sys/class/power_supply/BAT0/energy_full", "r");
-	if (file == NULL) {
-		DEBUG_ERROR("Failed to open battery capacity file\n");
-		snprintf(out, size, "err");
-		return;
-	}
-	float capacity = -1.0;
-	fscanf(file, "%f", &capacity);
-
-	err = fclose(file);
+void GetBatteryStatus(char* out, const size_t size) {
+	float capacity;
+	int err = ReadFile("/sys/class/power_supply/BAT0/energy_full", &capacity);
 	if (err != 0) {
-		DEBUG_ERROR("Failed to close battery capacity file\n");
 		snprintf(out, size, "err");
 		return;
 	}
 
-	/* Get battery energy */
-	file = fopen("/sys/class/power_supply/BAT0/energy_now", "r");
-	if (file == NULL) {
-		DEBUG_ERROR("Failed to open battery energy file\n");
-		snprintf(out, size, "err");
-		return;
-	}
-	float energy = -1.0f;
-	fscanf(file, "%f", &energy);
-
-	err = fclose(file);
+	float energy;
+	err = ReadFile("/sys/class/power_supply/BAT0/energy_now", &energy);
 	if (err != 0) {
-		DEBUG_ERROR("Failed to close battery energy file\n");
 		snprintf(out, size, "err");
 		return;
 	}
-
-	if (capacity < 0 || energy < 0) {
+	if (capacity < 0.0f || energy < 0.0f) {
 		snprintf(out, size, "???%%");
 		return;
 	}
@@ -82,6 +56,7 @@ void GetBatteryStatus(char* out, const size_t size) {
 	/* Get battery status */
 	char status;
 	char statusFile[12];
+	FILE* file;
 	file = fopen("/sys/class/power_supply/BAT0/status", "r");
 	if (file == NULL) {
 		DEBUG_ERROR("Failed to open battery status file\n");
@@ -94,9 +69,9 @@ void GetBatteryStatus(char* out, const size_t size) {
 		if (err != 0) {
 			DEBUG_ERROR("Failed to close battery status file\n");
 		}
-		if (strstr(statusFile, "Di")) {
+		if (strstr(statusFile, "D")) { /* Discharging */
 			status = '-';
-		} else if (strstr(statusFile, "Ch")) {
+		} else { /* Charging */
 			status = '+';
 		}
 	}
