@@ -34,6 +34,25 @@ int ReadFile(char* fileName, float* out) {
 	return 0;
 }
 
+void GetScreenBrightness(char* out, const size_t size) {
+	float max;
+	int err = ReadFile("/sys/class/backlight/intel_backlight/max_brightness", &max);
+	if (err != 0){
+		snprintf(out, size, "err");
+		return;
+	}
+
+	float now;
+	err = ReadFile("/sys/class/backlight/intel_backlight/brightness", &now);
+	if (err != 0) {
+		snprintf(out, size, "err");
+		return;
+	}
+	DEBUG_PRINT("Max brightness: %f\n", max);
+	DEBUG_PRINT("Current brightness: %f\n", now);
+	snprintf(out, size, "%0.f%%", now/max*100.0f);
+}
+
 void GetBatteryStatus(char* out, const size_t size) {
 	float capacity;
 	int err = ReadFile("/sys/class/power_supply/BAT0/energy_full", &capacity);
@@ -202,10 +221,12 @@ int main() {
 		return 1;
 	}
 
-	const size_t batteryMaxLength = 16;
+	const size_t brightnessMaxLength = 8;
+	const size_t batteryMaxLength = 8;
 	const size_t kbMaxLength = 4;
 	const size_t timeMaxLength = 32;
 	const size_t statusMaxLength = 128;
+	char brightness[brightnessMaxLength];
 	char battery[batteryMaxLength];
 	char kb[kbMaxLength];
 	long volume = -1;
@@ -214,13 +235,15 @@ int main() {
 
 	int sleepDuration = 0;
 	while (True) {
+		GetScreenBrightness(brightness, brightnessMaxLength);
 		GetBatteryStatus(battery, batteryMaxLength);
 		GetKeyboardLayout(display, kb, kbMaxLength);
 		GetAudioVolume(&volume);
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " Bat: %s   KB: %s   Vol: %ld   %s", battery, kb, volume, time);
+		snprintf(status, statusMaxLength, " Bri: %s    Bat: %s   KB: %s   Vol: %ld   %s",
+		brightness, battery, kb, volume, time);
 		SetStatus(status, display);
 		DEBUG_PRINT("Set status to: %s, sleeping for %d seconds\n", status, sleepDuration);
 		sleep(sleepDuration);
