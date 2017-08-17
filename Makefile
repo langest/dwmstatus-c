@@ -1,5 +1,5 @@
 LIBS = -lX11 -lasound
-FLAGS = -g -std=c99 -pedantic -Wall -O0
+FLAGS = -g -std=c99 -pedantic -Wall -O2
 
 dwmStatus: dwmstatus.c
 	gcc -o dwmstatus dwmstatus.c $(FLAGS) $(LIBS)

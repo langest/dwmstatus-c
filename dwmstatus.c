@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #include <alsa/asoundlib.h>
 
@@ -16,6 +17,22 @@
 #define DEBUG_PRINT(fmt, ...)
 #define DEBUG_ERROR(fmt)
 #endif
+
+void GetVpnStatus(char* out, size_t size) {
+	struct stat s;
+	const char* vpnPath = "/sys/class/net/tun0";
+	int err = lstat(vpnPath, &s);
+	if (err == -1) {
+		if(errno == ENOENT) {
+			DEBUG_PRINT("VPN tunnel not found: %s", vpnPath);
+			snprintf(out, size, "🔓");
+		} else {
+			DEBUG_ERROR("Error when checking VPN tunnel status");
+		}
+	}
+	DEBUG_PRINT("VPN tunnel exists: %s", vpnPath);
+	snprintf(out, size, "🔒");
+}
 
 int ReadFile(char* fileName, float* out) {
 	FILE* file;
@@ -225,26 +242,35 @@ int main() {
 	const size_t brightnessMaxLength = 8;
 	const size_t batteryMaxLength = 8;
 	const size_t kbMaxLength = 4;
+	const size_t vpnMaxLength = 8;
 	const size_t timeMaxLength = 32;
 	const size_t statusMaxLength = 128;
 	char brightness[brightnessMaxLength];
 	char battery[batteryMaxLength];
 	char kb[kbMaxLength];
 	long volume = -1;
+	char vpn[vpnMaxLength];
 	char time[timeMaxLength];
 	char status[statusMaxLength];
 
-	int sleepDuration = 0;
+	int sleepDuration;
 	while (True) {
 		GetScreenBrightness(brightness, brightnessMaxLength);
 		GetBatteryStatus(battery, batteryMaxLength);
 		GetKeyboardLayout(display, kb, kbMaxLength);
 		GetAudioVolume(&volume);
+		GetVpnStatus(vpn, vpnMaxLength);
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " ☼ %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s",
-		brightness, battery, kb, volume, time);
+		snprintf(status, statusMaxLength, " ☼ %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s ⋮ %s",
+		brightness,
+		battery,
+		kb,
+		volume,
+		vpn,
+		time);
+
 		SetStatus(status, display);
 		DEBUG_PRINT("Set status to: %s, sleeping for %d seconds\n", status, sleepDuration);
 		sleep(sleepDuration);
