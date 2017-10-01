@@ -24,11 +24,12 @@ void GetVpnStatus(char* out, size_t size) {
 	int err = lstat(vpnPath, &s);
 	if (err == -1) {
 		if(errno == ENOENT) {
-			DEBUG_PRINT("VPN tunnel not found: %s", vpnPath);
-			snprintf(out, size, "🔓");
+			DEBUG_PRINT("VPN tunnel not found: %s\n", vpnPath);
 		} else {
-			DEBUG_ERROR("Error when checking VPN tunnel status");
+			DEBUG_ERROR("Error when checking VPN tunnel status\n");
 		}
+		snprintf(out, size, "🔓");
+		return;
 	}
 	DEBUG_PRINT("VPN tunnel exists: %s", vpnPath);
 	snprintf(out, size, "🔒");
