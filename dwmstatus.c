@@ -222,6 +222,11 @@ void CatchSignal(int signo, siginfo_t* sinfo, void *context) {
 	DEBUG_PRINT("Caught signal no: %d.\n", signo);
 }
 
+void CatchSignalAndSleep(int signo, siginfo_t* sinfo, void *context) {
+	DEBUG_PRINT("Caught signal no: %d.\n", signo);
+	nanosleep((const struct timespec[]){{0, 160000000L}}, NULL);
+}
+
 int main() {
 	/* Register signal handler */
 	struct sigaction action;
@@ -229,6 +234,11 @@ int main() {
 	action.sa_sigaction = &CatchSignal;
 	action.sa_flags = SA_SIGINFO;
 	if (sigaction(SIGUSR1, &action, NULL) < 0) {
+		DEBUG_ERROR("Failed to register signal handler\n");
+		return 2;
+	}
+	action.sa_sigaction = &CatchSignalAndSleep;
+	if (sigaction(SIGUSR2, &action, NULL) < 0) {
 		DEBUG_ERROR("Failed to register signal handler\n");
 		return 2;
 	}
