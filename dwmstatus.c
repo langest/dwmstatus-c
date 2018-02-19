@@ -61,7 +61,7 @@ void GetScreenBrightness(char* out, const size_t size) {
 	}
 
 	float now;
-	err = ReadFile("/sys/class/backlight/intel_backlight/brightness", &now);
+	err = ReadFile("/sys/class/backlight/intel_backlight/actual_brightness", &now);
 	if (err != 0) {
 		snprintf(out, size, "err");
 		return;
