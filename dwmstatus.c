@@ -278,7 +278,7 @@ int main() {
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " ☼ %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s ⋮ %s",
+		snprintf(status, statusMaxLength, " 🔆 %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s ⋮ %s",
 		brightness,
 		battery,
 		kb,
