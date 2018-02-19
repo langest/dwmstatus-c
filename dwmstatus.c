@@ -79,10 +79,14 @@ void GetBatteryStatus(char* out, const size_t size) {
 		fscanf(file, "%d", &capacity);
 		const int err = fclose(file);
 		if (err != 0) {
-			DEBUG_ERROR("Failed to close batter capacity file\n");
+			DEBUG_ERROR("Failed to close battery capacity file\n");
 			snprintf(out, size, "err");
 			return;
 		}
+	} else {
+		DEBUG_PRINT("Did not find battery capacity faile, assuming no battery present\n");
+		snprintf(out, size, "❌");
+		return;
 	}
 
 	if (capacity < 0) {
