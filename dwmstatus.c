@@ -31,7 +31,7 @@ void GetVpnStatus(char* out, size_t size) {
 		snprintf(out, size, "🔓");
 		return;
 	}
-	DEBUG_PRINT("VPN tunnel exists: %s", vpnPath);
+	DEBUG_PRINT("VPN tunnel exists: %s\n", vpnPath);
 	snprintf(out, size, "🔒");
 }
 
@@ -42,8 +42,11 @@ int ReadFile(char* fileName, float* out) {
 		DEBUG_PRINT("Failed to open file: %s\n", fileName);
 		return 1;
 	}
-	fscanf(file, "%f", out);
-	int err;
+	int err = fscanf(file, "%f", out);
+	if (err != 0) {
+		DEBUG_PRINT("Failed to scan file: %s\n", fileName);
+		return 2;
+	}
 	err = fclose(file);
 	if (err != 0) {
 		DEBUG_PRINT("Failed to close file: %s\n", fileName);
@@ -76,15 +79,20 @@ void GetBatteryStatus(char* out, const size_t size) {
 	FILE* file;
 	file = fopen("/sys/class/power_supply/BAT0/capacity", "r");
 	if (file) {
-		fscanf(file, "%d", &capacity);
-		const int err = fclose(file);
+		int err = fscanf(file, "%d", &capacity);
+		if (err != 0) {
+			DEBUG_ERROR("Failed to scan battery capacity file\n");
+			snprintf(out, size, "err");
+			return;
+		}
+		err = fclose(file);
 		if (err != 0) {
 			DEBUG_ERROR("Failed to close battery capacity file\n");
 			snprintf(out, size, "err");
 			return;
 		}
 	} else {
-		DEBUG_PRINT("Did not find battery capacity faile, assuming no battery present\n");
+		DEBUG_PRINT("Did not find battery capacity, assuming no battery present\n", "");
 		snprintf(out, size, "❌");
 		return;
 	}
@@ -102,10 +110,13 @@ void GetBatteryStatus(char* out, const size_t size) {
 		DEBUG_ERROR("Failed to open battery status file\n");
 		status[0] = '\0';
 	} else {
-		fscanf(file, "%s", status);
+		int err = fscanf(file, "%s", status);
+		if (err != 0) {
+			DEBUG_ERROR("Failed to scan battery status file\n");
+		}
 		DEBUG_PRINT("Battery status: %s\n", status);
 
-		const int err = fclose(file);
+		err = fclose(file);
 		if (err != 0) {
 			DEBUG_ERROR("Failed to close battery status file\n");
 		}
