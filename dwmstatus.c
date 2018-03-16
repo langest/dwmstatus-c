@@ -43,7 +43,7 @@ int ReadFile(char* fileName, float* out) {
 		return 1;
 	}
 	int err = fscanf(file, "%f", out);
-	if (err != 0) {
+	if (err < 0) {
 		DEBUG_PRINT("Failed to scan file: %s\n", fileName);
 		return 2;
 	}
@@ -80,7 +80,7 @@ void GetBatteryStatus(char* out, const size_t size) {
 	file = fopen("/sys/class/power_supply/BAT0/capacity", "r");
 	if (file) {
 		int err = fscanf(file, "%d", &capacity);
-		if (err != 0) {
+		if (err < 0) {
 			DEBUG_ERROR("Failed to scan battery capacity file\n");
 			snprintf(out, size, "err");
 			return;
@@ -92,7 +92,7 @@ void GetBatteryStatus(char* out, const size_t size) {
 			return;
 		}
 	} else {
-		DEBUG_PRINT("Did not find battery capacity, assuming no battery present\n", "");
+		DEBUG_ERROR("Did not find battery capacity, assuming no battery present\n");
 		snprintf(out, size, "❌");
 		return;
 	}
