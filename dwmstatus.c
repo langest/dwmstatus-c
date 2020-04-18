@@ -28,11 +28,11 @@ void GetVpnStatus(char* out, size_t size) {
 		} else {
 			DEBUG_ERROR("Error when checking VPN tunnel status\n");
 		}
-		snprintf(out, size, "🔓");
+		snprintf(out, size, "vpn no");
 		return;
 	}
 	DEBUG_PRINT("VPN tunnel exists: %s\n", vpnPath);
-	snprintf(out, size, "🔒");
+	snprintf(out, size, "vpn yes");
 }
 
 int ReadFile(char* fileName, float* out) {
@@ -74,10 +74,14 @@ void GetScreenBrightness(char* out, const size_t size) {
 	snprintf(out, size, "%0.f%%", now/max*100.0f);
 }
 
-void GetBatteryStatus(char* out, const size_t size) {
+void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 	int capacity;
 	FILE* file;
-	file = fopen("/sys/class/power_supply/BAT0/capacity", "r");
+	int filenameMaxLength = 40;
+	char filename[filenameMaxLength];
+	snprintf(filename, filenameMaxLength, "/sys/class/power_supply/BAT%d/capacity", batIndex);
+
+	file = fopen(filename, "r");
 	if (file) {
 		int err = fscanf(file, "%d", &capacity);
 		if (err < 0) {
@@ -93,7 +97,7 @@ void GetBatteryStatus(char* out, const size_t size) {
 		}
 	} else {
 		DEBUG_ERROR("Did not find battery capacity, assuming no battery present\n");
-		snprintf(out, size, "❌");
+		snprintf(out, size, "missing");
 		return;
 	}
 
@@ -272,7 +276,8 @@ int main() {
 	const size_t timeMaxLength = 32;
 	const size_t statusMaxLength = 128;
 	char brightness[brightnessMaxLength];
-	char battery[batteryMaxLength];
+	char battery0[batteryMaxLength];
+	char battery1[batteryMaxLength];
 	char kb[kbMaxLength];
 	long volume = -1;
 	char vpn[vpnMaxLength];
@@ -282,16 +287,18 @@ int main() {
 	int sleepDuration;
 	while (True) {
 		GetScreenBrightness(brightness, brightnessMaxLength);
-		GetBatteryStatus(battery, batteryMaxLength);
+		GetBatteryStatus(0, battery0, batteryMaxLength);
+		GetBatteryStatus(1, battery1, batteryMaxLength);
 		GetKeyboardLayout(display, kb, kbMaxLength);
 		GetAudioVolume(&volume);
 		GetVpnStatus(vpn, vpnMaxLength);
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " 🔆 %s ⋮ 🔋 %s ⋮ ⌨ %s ⋮ 🔊: %ld%% ⋮ %s ⋮ %s",
+		snprintf(status, statusMaxLength, " brightness %s | battery: %s, %s | ⌨ %s | volume %ld%% | %s | %s",
 		brightness,
-		battery,
+		battery0,
+		battery1,
 		kb,
 		volume,
 		vpn,
