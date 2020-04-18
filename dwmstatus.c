@@ -78,10 +78,10 @@ void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 	int capacity;
 	FILE* file;
 	int filenameMaxLength = 40;
-	char filename[filenameMaxLength];
-	snprintf(filename, filenameMaxLength, "/sys/class/power_supply/BAT%d/capacity", batIndex);
+	char info_file[filenameMaxLength];
+	snprintf(info_file, filenameMaxLength, "/sys/class/power_supply/BAT%d/capacity", batIndex);
 
-	file = fopen(filename, "r");
+	file = fopen(info_file, "r");
 	if (file) {
 		int err = fscanf(file, "%d", &capacity);
 		if (err < 0) {
@@ -109,7 +109,8 @@ void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 	/* Get battery status */
 	const size_t statusSize = 12;
 	char status[statusSize];
-	file = fopen("/sys/class/power_supply/BAT0/status", "r");
+	snprintf(info_file, filenameMaxLength, "/sys/class/power_supply/BAT%d/status", batIndex);
+	file = fopen(info_file, "r");
 	if (file == NULL) {
 		DEBUG_ERROR("Failed to open battery status file\n");
 		status[0] = '\0';
@@ -125,9 +126,11 @@ void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 			DEBUG_ERROR("Failed to close battery status file\n");
 		}
 		if (status[0] == 'C') { /* Charging */
-			snprintf(status, statusSize, "%s", "⌁");
-		} else { /* Discharging */
-		status[0] = '\0';
+			snprintf(status, statusSize, "%s", "+⌁");
+		} else if (status[0] == 'D'){ /* Discharging */
+			snprintf(status, statusSize, "%s", "-⌁");
+		} else { /* Uknown / not used */
+			status[0] = '\0';
 		}
 	}
 	DEBUG_PRINT("Battery capacity: %d\n", capacity);
