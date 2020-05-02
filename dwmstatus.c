@@ -28,11 +28,11 @@ void GetVpnStatus(char* out, size_t size) {
 		} else {
 			DEBUG_ERROR("Error when checking VPN tunnel status\n");
 		}
-		snprintf(out, size, "vpn no");
+		snprintf(out, size, "no");
 		return;
 	}
 	DEBUG_PRINT("VPN tunnel exists: %s\n", vpnPath);
-	snprintf(out, size, "vpn yes");
+	snprintf(out, size, "yes");
 }
 
 int ReadFile(char* fileName, float* out) {
@@ -107,7 +107,7 @@ void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 	}
 
 	/* Get battery status */
-	const size_t statusSize = 12;
+	const size_t statusSize = 16;
 	char status[statusSize];
 	snprintf(info_file, filenameMaxLength, "/sys/class/power_supply/BAT%d/status", batIndex);
 	file = fopen(info_file, "r");
@@ -126,9 +126,9 @@ void GetBatteryStatus(int batIndex, char* out, const size_t size) {
 			DEBUG_ERROR("Failed to close battery status file\n");
 		}
 		if (status[0] == 'C') { /* Charging */
-			snprintf(status, statusSize, "%s", "+⌁");
+			snprintf(status, statusSize, "%s", "⌁⏶");
 		} else if (status[0] == 'D'){ /* Discharging */
-			snprintf(status, statusSize, "%s", "-⌁");
+			snprintf(status, statusSize, "%s", "⌁⏷");
 		} else { /* Uknown / not used */
 			status[0] = '\0';
 		}
@@ -273,7 +273,7 @@ int main() {
 	}
 
 	const size_t brightnessMaxLength = 8;
-	const size_t batteryMaxLength = 8;
+	const size_t batteryMaxLength = 16;
 	const size_t kbMaxLength = 4;
 	const size_t vpnMaxLength = 8;
 	const size_t timeMaxLength = 32;
@@ -298,7 +298,7 @@ int main() {
 
 		sleepDuration = 60 - GetTime(time, timeMaxLength);
 
-		snprintf(status, statusMaxLength, " brightness %s | battery: %s, %s | ⌨ %s | volume %ld%% | %s | %s",
+		snprintf(status, statusMaxLength, " bklight: %s | bat: %s, %s | ⌨ %s | 🔊 %ld%% | vpn %s | %s",
 		brightness,
 		battery0,
 		battery1,
