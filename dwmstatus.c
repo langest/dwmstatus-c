@@ -28,7 +28,10 @@
  */
 int try_ping(const char* ip_address, const char* timeout) {
 	if(fork() == 0) { //child
-		execl("/bin/ping", "ping", "-w", timeout, "-c1", ip_address, "&>", "/dev/null", (char*)NULL);
+		int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
+		dup2(fd, 1);
+		execl("/bin/ping", "ping", "-w", timeout, "-c1", ip_address, (char*)NULL);
+		close(fd);
 	}
 	int status;
 	wait(&status);
