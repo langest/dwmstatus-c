@@ -48,18 +48,18 @@ void get_vpn_status(char* out, size_t size, const char* timeout) {
 }
 
 int read_file(char* file, float* out) {
-	FILE* file;
-	file = fopen(file, "r");
-	if (file == NULL) {
+	FILE* f;
+	f = fopen(file, "r");
+	if (f == NULL) {
 		DEBUG_PRINT("Failed to open file: %s\n", file);
 		return 1;
 	}
-	int err = fscanf(file, "%f", out);
+	int err = fscanf(f, "%f", out);
 	if (err < 0) {
 		DEBUG_PRINT("Failed to scan file: %s\n", file);
 		return 2;
 	}
-	err = fclose(file);
+	err = fclose(f);
 	if (err != 0) {
 		DEBUG_PRINT("Failed to close file: %s\n", file);
 		return 2;
