@@ -30,12 +30,14 @@ int try_ping(const char* ip_address, const char* timeout) {
 	if(fork() == 0) { //child
 		int fd = open("/dev/null", O_WRONLY | O_CREAT, 0666);
 		dup2(fd, 1);
+		dup2(fd, 2);
 		execl("/bin/ping", "ping", "-w", timeout, "-c1", ip_address, (char*)NULL);
 		close(fd);
+		exit(EXIT_FAILURE);
 	}
 	int status;
 	wait(&status);
-	return status == 0;
+	return WEXITSTATUS(status);
 }
 
 	const char* ip = "xxx.xxx.xxx.xxx"; // Any ip that you can only reach when VPN is up
@@ -256,16 +258,19 @@ void set_status(char* status, Display* display) {
 }
 
 void catch_signal(int signo, siginfo_t* sinfo, void *context) {
-	DEBUG_PRINT("Caught signal no: %d.\n", signo);
-}
-
-void catch_signal_and_sleep(int signo, siginfo_t* sinfo, void *context) {
-	DEBUG_PRINT("Caught signal no: %d.\n", signo);
-	nanosleep((const struct timespec[]){{0, 160000000L}}, NULL);
+    switch(signo) {
+        case SIGUSR1:
+            DEBUG_PRINT("Caught signal no: %d.\n", signo);
+            break;
+        case SIGUSR2:
+            DEBUG_PRINT("Caught signal no: %d.\n", signo);
+            nanosleep((const struct timespec[]){{0, 160000000L}}, NULL);
+    }
 }
 
 int main() {
 	/* Register signal handler */
+
 	struct sigaction action;
 	memset(&action, 0, sizeof(action));
 	action.sa_sigaction = &catch_signal;
@@ -274,7 +279,6 @@ int main() {
 		DEBUG_ERROR("Failed to register signal handler\n");
 		return 2;
 	}
-	action.sa_sigaction = &catch_signal_and_sleep;
 	if (sigaction(SIGUSR2, &action, NULL) < 0) {
 		DEBUG_ERROR("Failed to register signal handler\n");
 		return 2;
